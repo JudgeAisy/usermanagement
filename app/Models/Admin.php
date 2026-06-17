@@ -2,25 +2,13 @@
 namespace App\Models;
 
 use App\Core\AbstractUser;
-use App\Core\AuthInterface;
-use App\Core\LoggerTrait;
 
-class Admin extends AbstractUser implements AuthInterface {
-    use LoggerTrait;
+class Admin extends AbstractUser {
+    public function __construct($name, $email, $password, $deleted_at = null) {
+        parent::__construct($name, $email, $password, $deleted_at);
+    }
 
     public function userRole() {
-        return "Admin User";
-    }
-
-    public function login($email, $password) {
-        if ($email === $this->email && password_verify($password, $this->password)) {
-            $this->logMessage("Admin '{$this->name}' logged in.");
-            return "User logged in successfully.";
-        }
-        return "Invalid credentials.";
-    }
-
-    public function logout() {
-        return "User logged out.";
+        return "Admin";
     }
 }

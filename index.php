@@ -1,133 +1,78 @@
 <?php
 require_once 'autoload.php';
 
-use App\Models\Admin;
-use App\Models\RegularUser;
-use App\Services\AuthService;
+$fakeNames = ['Taha', 'Ahmet', 'Mehmet', 'Can', 'Murat', 'Selin', 'Ebru', 'Gizem'];
+$fakeSurnames = ['Cahit', 'Yılmaz', 'Kaya', 'Demir', 'Şahin', 'Çelik', 'Yıldız'];
 
-// PHP Session'ı başlatıyoruz
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+$studentsList = [];
 
-$authService = new AuthService();
-$message = "";
-$messageClass = "";
-
-// Test Kullanıcıları oluşturuluyor (Hocanın dokümanındaki veriler)
-$adminUser = new Admin("Alice", "alice@example.com", "admin123");
-$regularUser = new RegularUser("Bob", "bob@example.com", "user123");
-
-// Giriş Formu Post Edildiğinde
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+for ($i = 1; $i <= 10; $i++) {
+    $randomName = $fakeNames[array_rand($fakeNames)] . ' ' . $fakeSurnames[array_rand($fakeSurnames)];
+    $randomEmail = strtolower($fakeNames[array_rand($fakeNames)]) . $i . "@example.com";
     
-    if ($_POST['action'] === 'login') {
-        $email = trim($_POST['email']);
-        $password = trim($_POST['password']);
-
-        // Hangi kullanıcı nesnesiyle eşleştiğini bul
-        if ($email === $adminUser->getEmail()) {
-            $selectedUser = $adminUser;
-        } elseif ($email === $regularUser->getEmail()) {
-            $selectedUser = $regularUser;
-        } else {
-            $selectedUser = null;
-        }
-
-        if ($selectedUser) {
-            // Kimlik doğrulamayı çalıştırıyoruz
-            $result = $authService->authenticate($selectedUser, $email, $password);
-            
-            if ($result === "User logged in successfully.") {
-                $_SESSION['user_name'] = $selectedUser->getName();
-                $_SESSION['user_email'] = $selectedUser->getEmail();
-                $_SESSION['user_role'] = $selectedUser->userRole();
-                
-                $message = "Giriş Başarılı!";
-                $messageClass = "success";
-            } else {
-                $message = "Hatalı Şifre!";
-                $messageClass = "error";
-            }
-        } else {
-            $message = "Kullanıcı Bulunamadı!";
-            $messageClass = "error";
-        }
-    }
-
-    // Çıkış Butonuna Basıldığında
-    if ($_POST['action'] === 'logout') {
-        $_SESSION = [];
-        session_destroy();
-        header("Location: index.php");
-        exit;
+    $deletedAt = ($i == 3 || $i == 7) ? date('Y-m-d H:i:s') : null;
+    
+    if ($i % 2 == 0) {
+        $studentsList[$i] = new \App\Models\Admin($randomName, $randomEmail, 'pass123', $deletedAt);
+    } else {
+        $studentsList[$i] = new \App\Models\RegularUser($randomName, $randomEmail, 'pass123', $deletedAt);
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>User Management System</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 360px; }
-        h2 { margin-top: 0; color: #1f2937; text-align: center; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 6px; color: #4b5563; font-size: 14px; }
-        .form-group input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; }
-        button { width: 100%; padding: 11px; background: #2563eb; border: none; color: white; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; }
-        button:hover { background: #1d4ed8; }
-        .btn-logout { background: #dc2626; margin-top: 10px; }
-        .btn-logout:hover { background: #b91c1c; }
-        .alert { padding: 10px; border-radius: 6px; text-align: center; margin-bottom: 15px; font-size: 14px; font-weight: bold; }
-        .success { background: #d1fae5; color: #065f46; }
-        .error { background: #fee2e2; color: #991b1b; }
-        .badge { display: inline-block; padding: 4px 8px; background: #e5e7eb; border-radius: 4px; font-size: 12px; font-weight: bold; color: #374151; }
-        .info { font-size: 12px; color: #6b7280; background: #f9fafb; padding: 10px; border-radius: 6px; margin-top: 20px; line-height: 1.5; }
-    </style>
+    <title>SoftDelete & Faker Uygulaması</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
-
-<div class="card">
-    <?php if (!empty($message)): ?>
-        <div class="alert <?php echo $messageClass; ?>"><?php echo $message; ?></div>
-    <?php endif; ?>
-
-    <?php if (!isset($_SESSION['user_email'])): ?>
-        <h2>Giriş Yap</h2>
-        <form action="index.php" method="POST">
-            <input type="hidden" name="action" value="login">
-            <div class="form-group">
-                <label>E-posta Adresi:</label>
-                <input type="email" name="email" required placeholder="alice@example.com">
-            </div>
-            <div class="form-group">
-                <label>Şifre:</label>
-                <input type="password" name="password" required placeholder="admin123">
-            </div>
-            <button type="submit">Giriş Yap</button>
-        </form>
-
-        <div class="info">
-            <strong>Test Hesapları:</strong><br>
-            • Admin: alice@example.com / admin123<br>
-            • User: bob@example.com / user123
+<body class="bg-light">
+<div class="container mt-5">
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">Öğrenci / Kullanıcı Listesi (SoftDelete & Faker)</h4>
+            <span class="badge bg-primary">Faker Seeder Active</span>
         </div>
-
-    <?php else: ?>
-        <h2>Kullanıcı Profili</h2>
-        <p><strong>İsim:</strong> <?php echo $_SESSION['user_name']; ?></p>
-        <p><strong>E-posta:</strong> <?php echo $_SESSION['user_email']; ?></p>
-        <p><strong>Rol:</strong> <span class="badge"><?php echo $_SESSION['user_role']; ?></span></p>
-        
-        <form action="index.php" method="POST">
-            <input type="hidden" name="action" value="logout">
-            <button type="submit" class="btn-logout">Çıkış Yap</button>
-        </form>
-    <?php endif; ?>
+        <div class="card-body">
+            <table class="table table-striped table-hover mt-3">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>İsim Surname</th>
+                        <th>E-posta</th>
+                        <th>Rol</th>
+                        <th>Durum</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($studentsList as $id => $student): ?>
+                        <tr>
+                            <td><?= $id; ?></td>
+                            <td><?= $student->getName(); ?></td>
+                            <td><?= $student->getEmail(); ?></td>
+                            <td><?= $student->userRole(); ?></td>
+                            <td>
+                                <?php if ($student->isTrashed()): ?>
+                                    <span class="badge bg-danger">Silindi (Trashed)</span>
+                                <?php else: ?>
+                                    <span class="badge bg-success">Aktif</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if (!$student->isTrashed()): ?>
+                                    <button class="btn btn-warning btn-sm" onclick="alert('Kayıt Geçici Olarak Silindi (Soft Delete)')">Delete</button>
+                                <?php else: ?>
+                                    <button class="btn btn-success btn-sm" onclick="alert('Kayıt Geri Yüklendi (Restore)')">Restore</button>
+                                    <button class="btn bg-danger text-white btn-sm" onclick="alert('Kayıt Veritabanından Tamamen Silindi (Force Delete)')">Delete Permanently</button>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
-
 </body>
 </html>
